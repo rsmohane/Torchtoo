@@ -1,0 +1,73 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  backend-build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: '7.0.x'
+    
+    - name: Restore dependencies
+      run: dotnet restore backend/GrtTorchBearer.sln
+    
+    - name: Build
+      run: dotnet build backend/GrtTorchBearer.sln --configuration Release --no-restore
+    
+    - name: Run tests
+      run: dotnet test backend/GrtTorchBearer.sln --no-restore --verbosity normal
+    
+    - name: Build Docker image
+      run: |
+        docker build -t grtgroup2000-code/grt-torch-bearer-backend:latest ./backend
+        docker push grtgroup2000-code/grt-torch-bearer-backend:latest
+      if: github.ref == 'refs/heads/main'
+
+  frontend-build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+    
+    - name: Install dependencies (Website)
+      run: cd frontend/grt-website && npm ci
+    
+    - name: Build website
+      run: cd frontend/grt-website && npm run build
+    
+    - name: Build Docker image
+      run: |
+        docker build -t grtgroup2000-code/grt-torch-bearer-frontend:latest ./frontend/grt-website
+        docker push grtgroup2000-code/grt-torch-bearer-frontend:latest
+      if: github.ref == 'refs/heads/main'
+
+  deploy-k8s:
+    needs: [backend-build, frontend-build]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Configure kubectl
+      run: |
+        mkdir -p $HOME/.kube
+        echo "${{ secrets.KUBE_CONFIG }}" | base64 -d > $HOME/.kube/config
+    
+    - name: Deploy to Kubernetes
+      run: |
+        kubectl apply -f kubernetes/
+        kubectl rollout restart deployment/grt-backend
+        kubectl rollout restart deployment/grt-frontend

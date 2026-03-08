@@ -1,0 +1,51 @@
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*.code-workspace
+
+# .NET
+bin/
+obj/
+*.csproj.user
+.vs/
+packages/
+
+# Node
+node_modules/
+npm-debug.log
+yarn-error.log
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# React
+build/
+dist/
+.cache/
+
+# Docker
+.dockerignore
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+
+# Secrets
+secrets.json
+appsettings.production.json
+
+# Mobile
+/mobile/node_modules/
+/mobile/.expo/
