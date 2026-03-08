@@ -1,23 +1,25 @@
-FROM mcr.microsoft.com/dotnet/sdk:7.0 AS build
+#See https://aka.ms/customizecontainer to learn how to customize your debug container and how Visual Studio uses this Dockerfile to build your images for faster debugging.
+
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
+USER app
+WORKDIR /app
+EXPOSE 8080
+EXPOSE 8081
+
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
-
-# Copy all project files
-COPY ["GrtTorchBearer.API/GrtTorchBearer.API.csproj", "GrtTorchBearer.API/"]
-COPY ["GrtTorchBearer.Core/GrtTorchBearer.Core.csproj", "GrtTorchBearer.Core/"]
-COPY ["GrtTorchBearer.Infrastructure/GrtTorchBearer.Infrastructure.csproj", "GrtTorchBearer.Infrastructure/"]
-
-# Restore all dependencies
-RUN dotnet restore "GrtTorchBearer.API/GrtTorchBearer.API.csproj"
-
+COPY ["grt-assistant-website/grt-assistant-website.csproj", "grt-assistant-website/"]
+RUN dotnet restore "./grt-assistant-website/grt-assistant-website.csproj"
 COPY . .
-WORKDIR "/src/GrtTorchBearer.API"
-RUN dotnet build "GrtTorchBearer.API.csproj" -c Release -o /app/build
+WORKDIR "/src/grt-assistant-website"
+RUN dotnet build "./grt-assistant-website.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
 FROM build AS publish
-RUN dotnet publish "GrtTorchBearer.API.csproj" -c Release -o /app/publish
+ARG BUILD_CONFIGURATION=Release
+RUN dotnet publish "./grt-assistant-website.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
 
-FROM mcr.microsoft.com/dotnet/aspnet:7.0
+FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
-EXPOSE 5000
-ENTRYPOINT ["dotnet", "GrtTorchBearer.API.dll"]
+ENTRYPOINT ["dotnet", "grt-assistant-website.dll"]
